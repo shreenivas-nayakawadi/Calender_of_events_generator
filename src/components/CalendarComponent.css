@@ -1,0 +1,236 @@
+/* Calendar Container Styles */
+.calendar-container {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-container h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 5px;
+      font-size: 40px;
+      font-weight: bold;
+      text-transform: uppercase;
+}
+
+.calendar-container h2 {
+      color: #7f8c8d;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 30px;
+      font-weight: semibold;
+}
+.calendar-container h3 {
+      color: #7f8c8d;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: normal;
+}
+.calendar-container h4 {
+      color: #7f8c8d;
+      text-align: center;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: normal;
+}
+
+/* Table Styles */
+.calendar-table {
+      width: 100%;
+      border-collapse: separate; 
+      border-spacing: 0; 
+      margin-top: 10px;
+      background-color: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      border-radius: 5px; 
+      overflow: hidden;
+    }
+
+.calendar-button-container{
+      display: flex;
+      justify-content: end;
+      align-items: center;
+      gap: 10px;
+}
+
+.calendar-table th {
+      background-color: #3498db;
+      color: white;
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 500;
+}
+
+.calendar-table td {
+      border: 1px solid #e0e0e0;
+      padding: 8px;
+      text-align: center;
+      vertical-align: middle;
+}
+
+.calendar-table tr:nth-child(even) {
+      background-color: #f8f9fa;
+}
+
+.calendar-table tr:hover {
+      background-color: #f1f8ff;
+}
+
+/* Holiday Styles */
+.holiday {
+      color: #e74c3c;
+      font-weight: bold;
+}
+
+/* Button Styles */
+.add-remark-btn , .clear-btn, .save-btn  {
+      background-color: #2ecc71;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+      margin-bottom: 20px;
+}
+
+.clear-btn{
+      background-color:rgb(210, 80, 80);
+}
+
+.save-btn:hover{
+      background-color: #165f21;
+}
+
+.save-btn{
+      background-color: #287b34;
+}
+
+.clear-btn:hover{
+      background-color:rgb(219, 52, 52);
+}
+
+.add-remark-btn:hover {
+      background-color: #27ae60;
+}
+
+/* Remarks Column Styles */
+.remarks-cell {
+      vertical-align: top;
+      text-align: left;
+      padding: 8px 12px !important;
+}
+
+.remarks-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+}
+
+.remark-item {
+      padding: 4px 6px;
+      font-size: 0.85em;
+      line-height: 1.4;
+      border-radius: 3px;
+}
+
+.remark-item.holiday {
+      color: #e74c3c;
+      font-weight: bold;
+      background-color: rgba(231, 76, 60, 0.1);
+}
+
+.remark-item.event {
+      color: #2980b9;
+      font-weight: bold;
+      background-color: rgba(41, 128, 185, 0.1);
+}
+
+.event-tag {
+      color: #2980b9;
+      font-style: italic;
+      font-size: 0.8em;
+      margin-left: 4px;
+}
+
+.holiday-tag {
+      color: #e74c3c;
+      font-weight: bold;
+      font-size: 0.8em;
+      margin-left: 4px;
+}
+
+/* Superscript for special days */
+sup {
+      font-size: 0.7em;
+      vertical-align: super;
+      color: inherit;
+}
+
+.no-data-container {
+      display: flex;
+      gap: 10px;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-size: 1.2rem;
+      color: #7f8c8d;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Generate Calendar Button */
+.generate-calender {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.8rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+}
+
+.generate-calender:hover {
+      background-color: #2c7bbe;
+      transform: translateY(-2px);
+}
+
+.generate-calender:active {
+      transform: translateY(0);
+}
+
+.calendar-table td:empty {
+      background-color: #f5f5f5;
+      border: 1px solid #e0e0e0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+      .calendar-container {
+            padding: 10px;
+      }
+
+      .calendar-table {
+            font-size: 14px;
+      }
+
+      .generate-calender {
+            padding: 0.7rem 1.5rem;
+      }
+}

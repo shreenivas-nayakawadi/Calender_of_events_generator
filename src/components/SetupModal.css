@@ -1,0 +1,138 @@
+/* Modal overlay */
+.modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 5px;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    
+    /* Modal content */
+    .modal {
+      background: #fff;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 380px;
+      border-radius: 12px;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      box-sizing: border-box;
+    }
+    
+    /* Close button */
+    .close-button {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 1.8rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #333;
+    }
+    
+    /* Heading */
+    .modal h2 {
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+      color: #222;
+      text-align: center;
+    }
+    
+    /* Form styling */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    /* Inputs */
+    input {
+      padding: 0.65rem 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    
+    /* Submit button */
+    .submit-button {
+      background-color: #007bff;
+      color: #fff;
+      padding: 0.7rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    .submit-button:hover {
+      background-color: #0056b3;
+    }
+
+    .dept-select {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 16px;
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      background-color: #fff;
+      color: #333;
+      cursor: pointer;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    
+    .dept-select:hover {
+      border-color: #888;
+    }
+    
+    .dept-select:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+      outline: none;
+    }
+    
+    
+    /* iPhone & Small Devices */
+    @media screen and (max-width: 480px) {
+      .modal {
+        padding: 1.2rem;
+        max-width: 100%;
+        border-radius: 10px;
+      }
+    
+      .modal h2 {
+        font-size: 1.2rem;
+      }
+    
+      input,
+      .submit-button {
+        font-size: 1rem;
+      }
+    
+      .submit-button {
+        padding: 0.65rem;
+      }
+    
+      label {
+        font-size: 0.9rem;
+      }
+    }
+    
