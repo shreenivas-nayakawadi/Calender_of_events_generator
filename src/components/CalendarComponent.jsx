@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef, createRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { exportComponentAsJPEG } from "react-component-export-image";
 import * as htmlToImage from "html-to-image";
-
-// import { format, eachDayOfInterval, isSameDay, parseISO, getDay, isSaturday, getWeekOfMonth, isSunday } from 'date-fns';
 import {
       parseISO,
       format,
@@ -23,13 +21,10 @@ const CalendarComponent = () => {
       const [dept, setDept] = useState("");
       const [startYear, setStartYear] = useState(null);
       const [endYear, setEndYear] = useState(null);
-
       const [remarks, setRemarks] = useState([]);
       const [weeks, setWeeks] = useState([]);
-
       const [showModal, setShowModal] = useState(false);
       const [showSetupModal, setShowSetupModal] = useState(false);
-
       const calendarRef = useRef();
 
       useEffect(() => {
@@ -43,13 +38,10 @@ const CalendarComponent = () => {
 
                   const groupedWeeks = [];
                   let currentWeek = [];
-
-                  // Get the starting weekday (0=Sun, 1=Mon, ..., 6=Sat)
                   const startWeekday = getDay(parseISO(startDate));
 
                   allDays.forEach((day, index) => {
                         currentWeek.push(day);
-
                         if (getDay(day) === 6 || index === allDays.length - 1) {
                               groupedWeeks.push(currentWeek);
                               currentWeek = [];
@@ -63,79 +55,161 @@ const CalendarComponent = () => {
       }, [startDate, endDate]);
 
       const shouldHighlight = (date) => {
-            if (isSaturday(date)) {
-                  const weekOfMonth = getWeekOfMonth(date);
-                  return weekOfMonth === 1 || weekOfMonth === 3;
-            }
+            if (isSaturday(date)) return false;
 
-            return remarks.some(
-                  (remark) =>
-                        isSameDay(parseISO(remark.date), date) &&
-                        remark.type === "holiday"
-            );
+            return remarks.some((remark) => {
+                  if (remark.isRange) {
+                        const [rangeStart, rangeEnd] =
+                              remark.date.split(" to ");
+                        const start = parseISO(rangeStart);
+                        const end = parseISO(rangeEnd);
+                        return date >= start && date <= end;
+                  } else {
+                        return isSameDay(parseISO(remark.date), date);
+                  }
+            });
       };
 
       const isNonWorkingDay = (date) => {
+            // Check if it's any Saturday marked as holiday
             if (isSaturday(date)) {
+                  const isHolidaySaturday = remarks.some((remark) => {
+                        if (remark.isRange) {
+                              const [rangeStart, rangeEnd] =
+                                    remark.date.split(" to ");
+                              const start = parseISO(rangeStart);
+                              const end = parseISO(rangeEnd);
+                              return (
+                                    date >= start &&
+                                    date <= end &&
+                                    remark.type === "holiday"
+                              );
+                        } else {
+                              return (
+                                    isSameDay(parseISO(remark.date), date) &&
+                                    remark.type === "holiday"
+                              );
+                        }
+                  });
+
+                  // Also include 1st and 3rd Saturdays as holidays
                   const weekOfMonth = getWeekOfMonth(date);
-                  return weekOfMonth === 1 || weekOfMonth === 3;
+                  return (
+                        isHolidaySaturday ||
+                        weekOfMonth === 1 ||
+                        weekOfMonth === 3
+                  );
             }
 
-            return remarks.some(
-                  (remark) =>
-                        isSameDay(parseISO(remark.date), date) &&
-                        remark.type === "holiday"
-            );
+            // Check regular holidays (non-Saturdays)
+            return remarks.some((remark) => {
+                  if (remark.isRange) {
+                        const [rangeStart, rangeEnd] =
+                              remark.date.split(" to ");
+                        const start = parseISO(rangeStart);
+                        const end = parseISO(rangeEnd);
+                        return (
+                              date >= start &&
+                              date <= end &&
+                              remark.type === "holiday"
+                        );
+                  } else {
+                        return (
+                              isSameDay(parseISO(remark.date), date) &&
+                              remark.type === "holiday"
+                        );
+                  }
+            });
       };
 
       const getWeekRemarks = (weekDays) => {
             const weekRemarks = [];
 
-            weekDays.forEach((day) => {
-                  if (isSaturday(day)) {
-                        const weekOfMonth = getWeekOfMonth(day);
-                        if (weekOfMonth === 1 || weekOfMonth === 3) {
+            remarks.forEach((remark) => {
+                  if (remark.isRange) {
+                        const [rangeStart, rangeEnd] =
+                              remark.date.split(" to ");
+                        const start = parseISO(rangeStart);
+                        const end = parseISO(rangeEnd);
+                        const hasDateInRange = weekDays.some(
+                              (day) => day >= start && day <= end
+                        );
+                        if (hasDateInRange) {
                               weekRemarks.push({
-                                    date: day,
-                                    text: `${
-                                          weekOfMonth === 1 ? "First" : "Third"
-                                    } Saturday Holiday`,
-                                    type: "holiday",
+                                    date: `${format(start, "do")} to ${format(
+                                          end,
+                                          "do"
+                                    )}`,
+                                    text: remark.text,
+                                    type: remark.type,
+                                    isRange: true,
+                              });
+                        }
+                  } else {
+                        const remarkDate = parseISO(remark.date);
+                        if (
+                              weekDays.some((day) => isSameDay(remarkDate, day))
+                        ) {
+                              weekRemarks.push({
+                                    date: remarkDate,
+                                    text: remark.text,
+                                    type: remark.type,
+                                    isRange: false,
                               });
                         }
                   }
             });
 
-            remarks.forEach((remark) => {
-                  const remarkDate = parseISO(remark.date);
-                  if (weekDays.some((day) => isSameDay(remarkDate, day))) {
-                        weekRemarks.push({
-                              date: remarkDate,
-                              text: remark.text,
-                              type: remark.type,
-                        });
-                  }
-            });
+            weekRemarks.sort((a, b) => {
+                  const safeParse = (val) => {
+                        if (val instanceof Date) return val;
+                        try {
+                              return parseISO(val);
+                        } catch (e) {
+                              return new Date(NaN);
+                        }
+                  };
 
-            weekRemarks.sort((a, b) => a.date - b.date);
+                  const dateA = a.isRange
+                        ? safeParse(a.date.split(" to ")[0])
+                        : safeParse(a.date);
+                  const dateB = b.isRange
+                        ? safeParse(b.date.split(" to ")[0])
+                        : safeParse(b.date);
+                  return dateA - dateB;
+            });
 
             return (
                   <div className="remarks-column">
-                        {weekRemarks.map((remark, index) => (
-                              <div
-                                    key={index}
-                                    className={`remark-item ${remark.type}`}
-                              >
-                                    {format(remark.date, "do")} – {remark.text}
-                              </div>
-                        ))}
+                        {weekRemarks
+                              .filter(
+                                    (remark) =>
+                                          !(
+                                                !remark.isRange &&
+                                                remark.type === "holiday" &&
+                                                remark.text.includes("Saturday")
+                                          )
+                              )
+                              .map((remark, index) => (
+                                    <div
+                                          key={index}
+                                          className={`remark-item ${remark.type}`}
+                                    >
+                                          {remark.isRange
+                                                ? remark.date
+                                                : format(
+                                                        remark.date,
+                                                        "do"
+                                                  )}{" "}
+                                          – {remark.text}
+                                    </div>
+                              ))}
                   </div>
             );
       };
 
       const handleAddRemark = (remark) => {
             setRemarks((prev) => [...prev, remark]);
-            setShowModal(false);
       };
 
       const countWorkingDays = (weekDays) => {
@@ -169,7 +243,7 @@ const CalendarComponent = () => {
             <div ref={calendarRef}>
                   <div className="calendar-container">
                         <h1>Dayananda Sagar College of Engineering</h1>
-                        {dept &&(<h2>{dept}</h2>)}
+                        {dept && <h2>{dept}</h2>}
                         <h3>{sem && `SEM ${sem}`} UG CALENDAR OF EVENTS</h3>
                         <h4>
                               {startYear}-{endYear}
@@ -188,7 +262,7 @@ const CalendarComponent = () => {
                                           </button>
                                           <button
                                                 className="clear-btn"
-                                                onClick={() => clearData()}
+                                                onClick={clearData}
                                           >
                                                 Clear Data
                                           </button>
@@ -250,23 +324,21 @@ const CalendarComponent = () => {
                                                                         </td>
                                                                         {weekdays.map(
                                                                               (
-                                                                                    day,
+                                                                                    _,
                                                                                     i
                                                                               ) => {
-                                                                                    // For first week, skip days before start date
                                                                                     if (
                                                                                           weekIndex ===
                                                                                                 0 &&
                                                                                           i <
                                                                                                 firstWeekDay -
                                                                                                       1
-                                                                                    ) {
+                                                                                    )
                                                                                           return (
                                                                                                 <td
                                                                                                       key={`${weekIndex}-${i}`}
                                                                                                 ></td>
                                                                                           );
-                                                                                    }
 
                                                                                     const dayIndex =
                                                                                           weekIndex ===
@@ -279,7 +351,6 @@ const CalendarComponent = () => {
                                                                                           week[
                                                                                                 dayIndex
                                                                                           ];
-
                                                                                     if (
                                                                                           !dayDate
                                                                                     )
@@ -303,15 +374,64 @@ const CalendarComponent = () => {
                                                                                                 1 ||
                                                                                                 weekOfMonth ===
                                                                                                       3);
+                                                                                    const isEvent =
+                                                                                          remarks.some(
+                                                                                                (
+                                                                                                      remark
+                                                                                                ) => {
+                                                                                                      if (
+                                                                                                            remark.isRange
+                                                                                                      ) {
+                                                                                                            const [
+                                                                                                                  rangeStart,
+                                                                                                                  rangeEnd,
+                                                                                                            ] =
+                                                                                                                  remark.date.split(
+                                                                                                                        " to "
+                                                                                                                  );
+                                                                                                            const start =
+                                                                                                                  parseISO(
+                                                                                                                        rangeStart
+                                                                                                                  );
+                                                                                                            const end =
+                                                                                                                  parseISO(
+                                                                                                                        rangeEnd
+                                                                                                                  );
+                                                                                                            return (
+                                                                                                                  dayDate >=
+                                                                                                                        start &&
+                                                                                                                  dayDate <=
+                                                                                                                        end &&
+                                                                                                                  remark.type ===
+                                                                                                                        "event"
+                                                                                                            );
+                                                                                                      } else {
+                                                                                                            return (
+                                                                                                                  isSameDay(
+                                                                                                                        parseISO(
+                                                                                                                              remark.date
+                                                                                                                        ),
+                                                                                                                        dayDate
+                                                                                                                  ) &&
+                                                                                                                  remark.type ===
+                                                                                                                        "event"
+                                                                                                            );
+                                                                                                      }
+                                                                                                }
+                                                                                          );
 
                                                                                     return (
                                                                                           <td
                                                                                                 key={`${weekIndex}-${i}`}
                                                                                                 className={
-                                                                                                      shouldHighlight(
+                                                                                                      isNonWorkingDay(
                                                                                                             dayDate
                                                                                                       )
                                                                                                             ? "holiday"
+                                                                                                            : shouldHighlight(
+                                                                                                                    dayDate
+                                                                                                              )
+                                                                                                            ? "event"
                                                                                                             : ""
                                                                                                 }
                                                                                           >
@@ -319,7 +439,12 @@ const CalendarComponent = () => {
                                                                                                       dayDate,
                                                                                                       "d"
                                                                                                 )}
-                                                                                                {isFirstOrThirdSat && (
+                                                                                                {(isNonWorkingDay(
+                                                                                                      dayDate
+                                                                                                ) ||
+                                                                                                      shouldHighlight(
+                                                                                                            dayDate
+                                                                                                      )) && (
                                                                                                       <sup>
                                                                                                             *
                                                                                                       </sup>
@@ -383,6 +508,8 @@ const CalendarComponent = () => {
                                                                                     1st/3rd
                                                                                     Saturday
                                                                                     holidays
+                                                                                    or
+                                                                                    events
                                                                               </li>
                                                                               <li>
                                                                                     Holidays
@@ -394,11 +521,9 @@ const CalendarComponent = () => {
                                                                               <li>
                                                                                     Events
                                                                                     are
-                                                                                    marked
-                                                                                    separately
+                                                                                    highlighted
                                                                                     in
-                                                                                    remarks
-                                                                                    column
+                                                                                    blue
                                                                               </li>
                                                                         </ul>
                                                                   </div>
@@ -418,14 +543,6 @@ const CalendarComponent = () => {
                                                                         academic
                                                                         purposes
                                                                         only.
-                                                                        Please
-                                                                        verify
-                                                                        all
-                                                                        dates
-                                                                        with the
-                                                                        official
-                                                                        university
-                                                                        schedule.
                                                                   </div>
                                                                   <div
                                                                         style={{
@@ -455,17 +572,11 @@ const CalendarComponent = () => {
                                                                               </span>
                                                                               <span
                                                                                     style={{
-                                                                                          color: "#007bff",
+                                                                                          color: "#2980b9",
                                                                                     }}
                                                                               >
                                                                                     ■
                                                                                     Event
-                                                                              </span>
-                                                                              <span>
-                                                                                    ■
-                                                                                    Normal
-                                                                                    Working
-                                                                                    Day
                                                                               </span>
                                                                         </div>
                                                                   </div>
@@ -485,7 +596,7 @@ const CalendarComponent = () => {
                                                       setShowSetupModal(true)
                                                 }
                                           >
-                                                Generate Calender
+                                                Generate Calendar
                                           </button>
                                     )}
                               </div>
