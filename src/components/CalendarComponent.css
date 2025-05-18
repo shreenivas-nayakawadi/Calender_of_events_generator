@@ -226,6 +226,34 @@ td.holiday {
       color: #1a73e8;
     }
 
+    .undo-btn {
+      background-color: #f39c12;
+      color: white;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+    }
+    
+    .undo-btn:hover {
+      background-color: #e67e22;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    
+    .undo-btn:disabled {
+      background-color: #ccc;
+      color: #666;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    
+
 @media (max-width: 768px) {
       .calendar-container {
             padding: 10px;

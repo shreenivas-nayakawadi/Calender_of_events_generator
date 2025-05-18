@@ -2,14 +2,18 @@ import React, { useState, useEffect, useRef } from "react";
 import { exportComponentAsJPEG } from "react-component-export-image";
 import * as htmlToImage from "html-to-image";
 import {
-      parseISO,
-      format,
+      addDays,
+      format as dateFnsFormat,
+      parseISO as dateFnsParseISO,
+      isSameDay as dateFnsIsSameDay,
       isSaturday,
       isSunday,
       getDay,
-} from "../utils/dateUtils";
-import { eachDayOfInterval } from "../utils/dateRangeUtils";
-import { isSameDay, getWeekOfMonth } from "../utils/dateComparisonUtils";
+      eachDayOfInterval,
+      getDate,
+      parse,
+} from "date-fns";
+
 import RemarkModal from "./RemarkModal";
 import SetupModal from "./SetupModal";
 import "./CalendarComponent.css";
@@ -27,18 +31,100 @@ const CalendarComponent = () => {
       const [showSetupModal, setShowSetupModal] = useState(false);
       const calendarRef = useRef();
 
+      const examStartDate = endDate
+            ? dateFnsFormat(
+                    addDays(dateFnsParseISO(endDate), 5),
+                    "do MMMM yyyy"
+              )
+            : "";
+
+      // Helper function to safely parse dates
+      const safeParseISO = (dateString, referenceDate = new Date()) => {
+            try {
+                  if (dateString instanceof Date) return dateString;
+
+                  // Handle "1st", "2nd" format
+                  if (
+                        typeof dateString === "string" &&
+                        /^\d+[a-z]{2}$/.test(dateString)
+                  ) {
+                        const day = parseInt(dateString, 10);
+                        return new Date(
+                              referenceDate.getFullYear(),
+                              referenceDate.getMonth(),
+                              day
+                        );
+                  }
+
+                  // Handle "1st to 3rd" format
+                  if (
+                        typeof dateString === "string" &&
+                        dateString.includes(" to ")
+                  ) {
+                        const firstPart = dateString.split(" to ")[0];
+                        const day = parseInt(firstPart, 10);
+                        return new Date(
+                              referenceDate.getFullYear(),
+                              referenceDate.getMonth(),
+                              day
+                        );
+                  }
+
+                  return dateFnsParseISO(dateString);
+            } catch (e) {
+                  console.error("Failed to parse date:", dateString, e);
+                  return referenceDate;
+            }
+      };
+
+      const getWeekOfMonth = (date) => {
+            const firstDayOfMonth = new Date(
+                  date.getFullYear(),
+                  date.getMonth(),
+                  1
+            );
+            const dayOfWeek = firstDayOfMonth.getDay();
+            const dayOfMonth = date.getDate();
+            return Math.ceil((dayOfMonth + dayOfWeek) / 7);
+      };
+
+      const generateDefaultRemarks = (weeks) => {
+            const defaultRemarks = [];
+
+            weeks.forEach((week) => {
+                  const saturday = week.find((day) => isSaturday(day));
+
+                  if (saturday) {
+                        const weekOfMonth = getWeekOfMonth(saturday);
+
+                        if (weekOfMonth === 1 || weekOfMonth === 3) {
+                              defaultRemarks.push({
+                                    date: dateFnsFormat(saturday, "yyyy-MM-dd"),
+                                    text: `${weekOfMonth}${
+                                          weekOfMonth === 1 ? "st" : "rd"
+                                    } Saturday Holiday`,
+                                    type: "holiday",
+                                    isRange: false,
+                              });
+                        }
+                  }
+            });
+
+            return defaultRemarks;
+      };
+
       useEffect(() => {
             if (!startDate || !endDate) return;
 
             const generateCalendar = () => {
                   const allDays = eachDayOfInterval({
-                        start: parseISO(startDate),
-                        end: parseISO(endDate),
+                        start: dateFnsParseISO(startDate),
+                        end: dateFnsParseISO(endDate),
                   }).filter((day) => !isSunday(day));
 
                   const groupedWeeks = [];
                   let currentWeek = [];
-                  const startWeekday = getDay(parseISO(startDate));
+                  const startWeekday = getDay(dateFnsParseISO(startDate));
 
                   allDays.forEach((day, index) => {
                         currentWeek.push(day);
@@ -49,6 +135,9 @@ const CalendarComponent = () => {
                   });
 
                   setWeeks(groupedWeeks);
+
+                  const defaultRemarks = generateDefaultRemarks(groupedWeeks);
+                  setRemarks(defaultRemarks);
             };
 
             generateCalendar();
@@ -58,7 +147,7 @@ const CalendarComponent = () => {
             const months = new Set();
             weekDays.forEach((day) => {
                   if (day) {
-                        months.add(format(day, "MMM").toUpperCase());
+                        months.add(dateFnsFormat(day, "MMM").toUpperCase());
                   }
             });
 
@@ -75,50 +164,44 @@ const CalendarComponent = () => {
                   if (remark.isRange) {
                         const [rangeStart, rangeEnd] =
                               remark.date.split(" to ");
-                        const start = parseISO(rangeStart);
-                        const end = parseISO(rangeEnd);
+                        const start = safeParseISO(rangeStart, date);
+                        const end = safeParseISO(rangeEnd, date);
                         return date >= start && date <= end;
                   } else {
-                        return isSameDay(parseISO(remark.date), date);
+                        return dateFnsIsSameDay(
+                              safeParseISO(remark.date, date),
+                              date
+                        );
                   }
             });
       };
 
       const isNonWorkingDay = (date) => {
             if (isSaturday(date)) {
-                  const isHolidaySaturday = remarks.some((remark) => {
-                        if (remark.isRange) {
-                              const [rangeStart, rangeEnd] =
-                                    remark.date.split(" to ");
-                              const start = parseISO(rangeStart);
-                              const end = parseISO(rangeEnd);
+                  const weekOfMonth = getWeekOfMonth(date);
+                  if (weekOfMonth === 1 || weekOfMonth === 3) {
+                        return true;
+                  }
+
+                  return remarks.some((remark) => {
+                        if (!remark.isRange) {
                               return (
-                                    date >= start &&
-                                    date <= end &&
-                                    remark.type === "holiday"
-                              );
-                        } else {
-                              return (
-                                    isSameDay(parseISO(remark.date), date) &&
-                                    remark.type === "holiday"
+                                    dateFnsIsSameDay(
+                                          safeParseISO(remark.date, date),
+                                          date
+                                    ) && remark.type === "holiday"
                               );
                         }
+                        return false;
                   });
-
-                  const weekOfMonth = getWeekOfMonth(date);
-                  return (
-                        isHolidaySaturday ||
-                        weekOfMonth === 1 ||
-                        weekOfMonth === 3
-                  );
             }
 
             return remarks.some((remark) => {
                   if (remark.isRange) {
                         const [rangeStart, rangeEnd] =
                               remark.date.split(" to ");
-                        const start = parseISO(rangeStart);
-                        const end = parseISO(rangeEnd);
+                        const start = safeParseISO(rangeStart, date);
+                        const end = safeParseISO(rangeEnd, date);
                         return (
                               date >= start &&
                               date <= end &&
@@ -126,8 +209,10 @@ const CalendarComponent = () => {
                         );
                   } else {
                         return (
-                              isSameDay(parseISO(remark.date), date) &&
-                              remark.type === "holiday"
+                              dateFnsIsSameDay(
+                                    safeParseISO(remark.date, date),
+                                    date
+                              ) && remark.type === "holiday"
                         );
                   }
             });
@@ -140,33 +225,28 @@ const CalendarComponent = () => {
                   if (remark.isRange) {
                         const [rangeStart, rangeEnd] =
                               remark.date.split(" to ");
-                        const start = parseISO(rangeStart);
-                        const end = parseISO(rangeEnd);
+                        const start = safeParseISO(rangeStart, weekDays[0]);
+                        const end = safeParseISO(rangeEnd, weekDays[0]);
 
-                        // Find dates in this week that fall within the range
                         const datesInWeek = weekDays.filter(
                               (day) => day >= start && day <= end
                         );
 
                         if (datesInWeek.length > 0) {
-                              // If all days in range are in this week, show full range
                               if (
                                     datesInWeek.length ===
                                     end.getDate() - start.getDate() + 1
                               ) {
                                     weekRemarks.push({
-                                          date: `${format(
+                                          date: `${dateFnsFormat(
                                                 start,
                                                 "do"
-                                          )} to ${format(end, "do")}`,
+                                          )} to ${dateFnsFormat(end, "do")}`,
                                           text: remark.text,
                                           type: remark.type,
                                           isRange: true,
                                     });
-                              }
-                              // Otherwise break down by individual dates in this week
-                              else {
-                                    // Group consecutive dates
+                              } else {
                                     const consecutiveGroups = [];
                                     let currentGroup = [datesInWeek[0]];
 
@@ -192,14 +272,13 @@ const CalendarComponent = () => {
                                     }
                                     consecutiveGroups.push([...currentGroup]);
 
-                                    // Create remarks for each group
                                     consecutiveGroups.forEach((group) => {
                                           if (group.length > 1) {
                                                 weekRemarks.push({
-                                                      date: `${format(
+                                                      date: `${dateFnsFormat(
                                                             group[0],
                                                             "do"
-                                                      )} to ${format(
+                                                      )} to ${dateFnsFormat(
                                                             group[
                                                                   group.length -
                                                                         1
@@ -222,113 +301,144 @@ const CalendarComponent = () => {
                               }
                         }
                   } else {
-                        const remarkDate = parseISO(remark.date);
+                        const remarkDate = safeParseISO(
+                              remark.date,
+                              weekDays[0]
+                        );
                         if (
-                              weekDays.some((day) => isSameDay(remarkDate, day))
+                              weekDays.some((day) =>
+                                    dateFnsIsSameDay(remarkDate, day)
+                              )
                         ) {
-                              weekRemarks.push({
-                                    date: remarkDate,
-                                    text: remark.text,
-                                    type: remark.type,
-                                    isRange: false,
-                              });
+                              if (isSaturday(remarkDate)) {
+                                    const weekOfMonth =
+                                          getWeekOfMonth(remarkDate);
+                                    if (
+                                          weekOfMonth === 1 ||
+                                          weekOfMonth === 3
+                                    ) {
+                                          weekRemarks.push({
+                                                date: remarkDate,
+                                                text: remark.text,
+                                                type: remark.type,
+                                                isRange: false,
+                                          });
+                                    }
+                              } else {
+                                    weekRemarks.push({
+                                          date: remarkDate,
+                                          text: remark.text,
+                                          type: remark.type,
+                                          isRange: false,
+                                    });
+                              }
                         }
                   }
             });
 
-            // Sort remarks by date
             weekRemarks.sort((a, b) => {
                   const getFirstDate = (remark) => {
                         if (remark.isRange) {
                               if (typeof remark.date === "string") {
-                                    return parseISO(
-                                          remark.date.split(" to ")[0]
+                                    if (remark.date.includes(" to ")) {
+                                          const firstDateStr =
+                                                remark.date.split(" to ")[0];
+                                          const day = parseInt(
+                                                firstDateStr,
+                                                10
+                                          );
+                                          return (
+                                                weekDays.find(
+                                                      (d) => getDate(d) === day
+                                                ) || new Date()
+                                          );
+                                    }
+                                    return safeParseISO(
+                                          remark.date,
+                                          weekDays[0]
                                     );
                               }
                               return remark.date[0];
                         }
-                        return remark.date;
+                        return safeParseISO(remark.date, weekDays[0]);
                   };
 
-                  return getFirstDate(a) - getFirstDate(b);
+                  const dateA = getFirstDate(a);
+                  const dateB = getFirstDate(b);
+                  return dateA - dateB;
             });
 
             return (
                   <div className="remarks-column">
-                        {weekRemarks
-                              .filter(
-                                    (remark) =>
-                                          !(
-                                                !remark.isRange &&
-                                                remark.type === "holiday" &&
-                                                remark.text.includes("Saturday")
-                                          )
-                              )
-                              .map((remark, index) => (
-                                    <div
-                                          key={index}
-                                          className={`remark-item ${remark.type}`}
-                                    >
-                                          {remark.isRange
-                                                ? remark.date
-                                                : format(
-                                                        remark.date,
-                                                        "do"
-                                                  )}{" "}
-                                          – {remark.text}
-                                    </div>
-                              ))}
+                        {weekRemarks.map((remark, index) => (
+                              <div
+                                    key={index}
+                                    className={`remark-item ${remark.type}`}
+                              >
+                                    {remark.isRange
+                                          ? remark.date
+                                          : dateFnsFormat(
+                                                  remark.date,
+                                                  "do"
+                                            )}{" "}
+                                    – {remark.text}
+                              </div>
+                        ))}
                   </div>
             );
       };
 
+      const handleUndoRemark = () => {
+            setRemarks((prev) => prev.slice(0, -1));
+      };
+
       const handleAddRemark = (remark) => {
-            // Check if remark conflicts with existing remarks
             const isDuplicate = remarks.some((existingRemark) => {
                   if (remark.isRange && existingRemark.isRange) {
-                        const [newStart, newEnd] = remark.date
-                              .split(" to ")
-                              .map(parseISO);
-                        const [existingStart, existingEnd] = existingRemark.date
-                              .split(" to ")
-                              .map(parseISO);
+                        const [newStart, newEnd] = remark.date.split(" to ");
+                        const [existingStart, existingEnd] =
+                              existingRemark.date.split(" to ");
+                        const newStartDate = safeParseISO(newStart);
+                        const newEndDate = safeParseISO(newEnd);
+                        const existingStartDate = safeParseISO(existingStart);
+                        const existingEndDate = safeParseISO(existingEnd);
+
                         return (
-                              (newStart >= existingStart &&
-                                    newStart <= existingEnd) ||
-                              (newEnd >= existingStart &&
-                                    newEnd <= existingEnd) ||
-                              (newStart <= existingStart &&
-                                    newEnd >= existingEnd)
+                              (newStartDate >= existingStartDate &&
+                                    newStartDate <= existingEndDate) ||
+                              (newEndDate >= existingStartDate &&
+                                    newEndDate <= existingEndDate) ||
+                              (newStartDate <= existingStartDate &&
+                                    newEndDate >= existingEndDate)
                         );
                   } else if (!remark.isRange && !existingRemark.isRange) {
-                        return isSameDay(
-                              parseISO(remark.date),
-                              parseISO(existingRemark.date)
+                        return dateFnsIsSameDay(
+                              safeParseISO(remark.date),
+                              safeParseISO(existingRemark.date)
                         );
                   }
                   if (remark.isRange) {
-                        const [rangeStart, rangeEnd] = remark.date
-                              .split(" to ")
-                              .map(parseISO);
-                        const singleDate = parseISO(existingRemark.date);
-                        return (
-                              singleDate >= rangeStart && singleDate <= rangeEnd
-                        );
+                        const [rangeStart, rangeEnd] =
+                              remark.date.split(" to ");
+                        const singleDate = safeParseISO(existingRemark.date);
+                        const start = safeParseISO(rangeStart);
+                        const end = safeParseISO(rangeEnd);
+                        return singleDate >= start && singleDate <= end;
                   } else {
-                        const [rangeStart, rangeEnd] = existingRemark.date
-                              .split(" to ")
-                              .map(parseISO);
-                        const singleDate = parseISO(remark.date);
-                        return (
-                              singleDate >= rangeStart && singleDate <= rangeEnd
-                        );
+                        const [rangeStart, rangeEnd] =
+                              existingRemark.date.split(" to ");
+                        const singleDate = safeParseISO(remark.date);
+                        const start = safeParseISO(rangeStart);
+                        const end = safeParseISO(rangeEnd);
+                        return singleDate >= start && singleDate <= end;
                   }
             });
 
-            // Check if dates include 1st/3rd Saturdays
             let hasSystemHoliday = false;
             if (remark.isRange) {
-                  const [start, end] = remark.date.split(" to ").map(parseISO);
+                  const [start, end] = remark.date
+                        .split(" to ")
+                        .map((d) => safeParseISO(d));
                   let current = new Date(start);
                   while (current <= end) {
                         if (isNonWorkingDay(current)) {
@@ -338,11 +448,11 @@ const CalendarComponent = () => {
                         current.setDate(current.getDate() + 1);
                   }
             } else {
-                  const date = parseISO(remark.date);
+                  const date = safeParseISO(remark.date);
                   hasSystemHoliday = isNonWorkingDay(date);
             }
 
-            if (isDuplicate || hasSystemHoliday) {
+            if (hasSystemHoliday) {
                   alert(
                         `Remark conflict! ${
                               hasSystemHoliday
@@ -371,13 +481,47 @@ const CalendarComponent = () => {
             setWeeks([]);
       };
 
+      const getWorkingDaysByWeekday = () => {
+            const counts = [0, 0, 0, 0, 0, 0]; // Mon to Sat (index 0 = Monday)
+
+            weeks.forEach((week) => {
+                  week.forEach((day) => {
+                        const dayIndex = getDay(day); // Sunday = 0, Saturday = 6
+                        if (dayIndex === 0) return; // skip Sunday
+                        const adjustedIndex = dayIndex - 1; // shift so Mon = 0, Sat = 5
+                        if (!isNonWorkingDay(day)) {
+                              counts[adjustedIndex]++;
+                        }
+                  });
+            });
+
+            return counts;
+      };
+
       const handleExport = async () => {
+            const buttonContainer = document.querySelector(
+                  ".calendar-button-container"
+            );
+
+            // Hide buttons
+            if (buttonContainer) buttonContainer.style.display = "none";
+
             if (calendarRef.current) {
-                  const dataUrl = await htmlToImage.toJpeg(calendarRef.current);
-                  const link = document.createElement("a");
-                  link.download = `${sem} UG Calendar of events.jpg`;
-                  link.href = dataUrl;
-                  link.click();
+                  try {
+                        const dataUrl = await htmlToImage.toJpeg(
+                              calendarRef.current
+                        );
+                        const link = document.createElement("a");
+                        link.download = `${sem} UG Calendar of events.jpg`;
+                        link.href = dataUrl;
+                        link.click();
+                  } catch (error) {
+                        console.error("Image export failed:", error);
+                  } finally {
+                        // Show buttons again
+                        if (buttonContainer)
+                              buttonContainer.style.display = "flex";
+                  }
             }
       };
 
@@ -396,6 +540,14 @@ const CalendarComponent = () => {
                         {startDate && endDate ? (
                               <div>
                                     <div className="calendar-button-container">
+                                          <button
+                                                className="undo-btn"
+                                                onClick={handleUndoRemark}
+                                                disabled={remarks.length === 0}
+                                          >
+                                                Undo Last Remark
+                                          </button>
+
                                           <button
                                                 className="add-remark-btn"
                                                 onClick={() =>
@@ -516,7 +668,7 @@ const CalendarComponent = () => {
                                                                                                             : ""
                                                                                                 }
                                                                                           >
-                                                                                                {format(
+                                                                                                {dateFnsFormat(
                                                                                                       dayDate,
                                                                                                       "d"
                                                                                                 )}
@@ -550,11 +702,44 @@ const CalendarComponent = () => {
                                                 )}
                                           </tbody>
                                           <tfoot>
+                                                <tr className="totals-row">
+                                                      <td colSpan="2">
+                                                            <strong>
+                                                                  Total Working
+                                                                  Days
+                                                            </strong>
+                                                      </td>
+                                                      {getWorkingDaysByWeekday().map(
+                                                            (count, idx) => (
+                                                                  <td key={idx}>
+                                                                        <strong>
+                                                                              {
+                                                                                    count
+                                                                              }
+                                                                        </strong>
+                                                                  </td>
+                                                            )
+                                                      )}
+                                                      <td>
+                                                            <strong>
+                                                                  {getWorkingDaysByWeekday().reduce(
+                                                                        (
+                                                                              sum,
+                                                                              val
+                                                                        ) =>
+                                                                              sum +
+                                                                              val,
+                                                                        0
+                                                                  )}
+                                                            </strong>
+                                                      </td>
+                                                      <td></td>
+                                                </tr>
                                                 <tr>
                                                       <td
                                                             colSpan={
                                                                   weekdays.length +
-                                                                  3
+                                                                  4
                                                             }
                                                             style={{
                                                                   textAlign:
@@ -603,6 +788,19 @@ const CalendarComponent = () => {
                                                                                     highlighted
                                                                                     in
                                                                                     blue
+                                                                              </li>
+                                                                              <li>
+                                                                                    <strong>
+                                                                                          {
+                                                                                                examStartDate
+                                                                                          }
+                                                                                    </strong>{" "}
+                                                                                    Onwards
+                                                                                    –
+                                                                                    Semester
+                                                                                    End
+                                                                                    Examination
+                                                                                    (Tentative)
                                                                               </li>
                                                                         </ul>
                                                                   </div>
@@ -658,6 +856,64 @@ const CalendarComponent = () => {
                                                                                     Event
                                                                               </span>
                                                                         </div>
+                                                                  </div>
+                                                            </div>
+                                                      </td>
+                                                </tr>
+                                                <tr>
+                                                      <td
+                                                            colSpan={
+                                                                  weekdays.length +
+                                                                  4
+                                                            }
+                                                            style={{
+                                                                  textAlign:
+                                                                        "left",
+                                                                  padding: "10px",
+                                                            }}
+                                                      >
+                                                            <div
+                                                                  style={{
+                                                                        marginTop:
+                                                                              "40px",
+                                                                        display: "flex",
+                                                                        justifyContent:
+                                                                              "space-between",
+                                                                        padding: "0 50px",
+                                                                  }}
+                                                            >
+                                                                  <div
+                                                                        style={{
+                                                                              textAlign:
+                                                                                    "center",
+                                                                        }}
+                                                                  >
+                                                                        <p>
+                                                                              __________________________
+                                                                        </p>
+                                                                        <p>
+                                                                              <strong>
+                                                                                    Dean
+                                                                                    Academics
+                                                                                    /
+                                                                                    COE
+                                                                              </strong>
+                                                                        </p>
+                                                                  </div>
+                                                                  <div
+                                                                        style={{
+                                                                              textAlign:
+                                                                                    "center",
+                                                                        }}
+                                                                  >
+                                                                        <p>
+                                                                              __________________________
+                                                                        </p>
+                                                                        <p>
+                                                                              <strong>
+                                                                                    Principal
+                                                                              </strong>
+                                                                        </p>
                                                                   </div>
                                                             </div>
                                                       </td>
