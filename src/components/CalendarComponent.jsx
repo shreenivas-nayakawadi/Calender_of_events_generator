@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { exportComponentAsJPEG } from "react-component-export-image";
 import * as htmlToImage from "html-to-image";
 import {
       addDays,
@@ -158,8 +157,6 @@ const CalendarComponent = () => {
       };
 
       const shouldHighlight = (date) => {
-            if (isSaturday(date)) return false;
-
             return remarks.some((remark) => {
                   if (remark.isRange) {
                         const [rangeStart, rangeEnd] =
@@ -177,25 +174,15 @@ const CalendarComponent = () => {
       };
 
       const isNonWorkingDay = (date) => {
+            // System holidays (1st/3rd Saturdays)
             if (isSaturday(date)) {
                   const weekOfMonth = getWeekOfMonth(date);
                   if (weekOfMonth === 1 || weekOfMonth === 3) {
                         return true;
                   }
-
-                  return remarks.some((remark) => {
-                        if (!remark.isRange) {
-                              return (
-                                    dateFnsIsSameDay(
-                                          safeParseISO(remark.date, date),
-                                          date
-                                    ) && remark.type === "holiday"
-                              );
-                        }
-                        return false;
-                  });
             }
 
+            // User-added holidays
             return remarks.some((remark) => {
                   if (remark.isRange) {
                         const [rangeStart, rangeEnd] =
@@ -310,28 +297,12 @@ const CalendarComponent = () => {
                                     dateFnsIsSameDay(remarkDate, day)
                               )
                         ) {
-                              if (isSaturday(remarkDate)) {
-                                    const weekOfMonth =
-                                          getWeekOfMonth(remarkDate);
-                                    if (
-                                          weekOfMonth === 1 ||
-                                          weekOfMonth === 3
-                                    ) {
-                                          weekRemarks.push({
-                                                date: remarkDate,
-                                                text: remark.text,
-                                                type: remark.type,
-                                                isRange: false,
-                                          });
-                                    }
-                              } else {
-                                    weekRemarks.push({
-                                          date: remarkDate,
-                                          text: remark.text,
-                                          type: remark.type,
-                                          isRange: false,
-                                    });
-                              }
+                              weekRemarks.push({
+                                    date: remarkDate,
+                                    text: remark.text,
+                                    type: remark.type,
+                                    isRange: false,
+                              });
                         }
                   }
             });
@@ -441,26 +412,23 @@ const CalendarComponent = () => {
                         .map((d) => safeParseISO(d));
                   let current = new Date(start);
                   while (current <= end) {
-                        if (isNonWorkingDay(current)) {
-                              hasSystemHoliday = true;
-                              break;
+                        if (isSaturday(current)) {
+                              const weekOfMonth = getWeekOfMonth(current);
+                              if (weekOfMonth === 1 || weekOfMonth === 3) {
+                                    hasSystemHoliday = true;
+                                    break;
+                              }
                         }
                         current.setDate(current.getDate() + 1);
                   }
             } else {
                   const date = safeParseISO(remark.date);
-                  hasSystemHoliday = isNonWorkingDay(date);
-            }
-
-            if (hasSystemHoliday) {
-                  alert(
-                        `Remark conflict! ${
-                              hasSystemHoliday
-                                    ? "Selected dates include system holidays (1st/3rd Saturdays)"
-                                    : "Duplicate date/range exists"
-                        }`
-                  );
-                  return;
+                  if (isSaturday(date)) {
+                        const weekOfMonth = getWeekOfMonth(date);
+                        if (weekOfMonth === 1 || weekOfMonth === 3) {
+                              hasSystemHoliday = true;
+                        }
+                  }
             }
 
             setRemarks((prev) => [...prev, remark]);
@@ -471,14 +439,23 @@ const CalendarComponent = () => {
       };
 
       const clearData = () => {
-            setStartDate("");
-            setEndDate("");
-            setSem(null);
-            setDept("");
-            setStartYear(null);
-            setEndYear(null);
-            setRemarks([]);
-            setWeeks([]);
+            const userInput = prompt(
+                  'Type "CLEAR" (in uppercase) to confirm clearing all data.'
+            );
+
+            if (userInput === "CLEAR") {
+                  setStartDate("");
+                  setEndDate("");
+                  setSem(null);
+                  setDept("");
+                  setStartYear(null);
+                  setEndYear(null);
+                  setRemarks([]);
+                  setWeeks([]);
+                  alert("All data has been cleared.");
+            } else {
+                  alert("Clear cancelled. You must type 'CLEAR' exactly.");
+            }
       };
 
       const getWorkingDaysByWeekday = () => {
@@ -528,434 +505,507 @@ const CalendarComponent = () => {
       const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
       return (
-            <div ref={calendarRef}>
-                  <div className="calendar-container">
-                        <h1>Dayananda Sagar College of Engineering</h1>
-                        {dept && <h2>{dept}</h2>}
-                        <h3>{sem && `SEM ${sem}`} UG CALENDAR OF EVENTS</h3>
-                        <h4>
-                              {startYear}-{endYear}
-                        </h4>
+            <>
+                  <div ref={calendarRef}>
+                        <div className="calendar-container">
+                              <h1>Dayananda Sagar College of Engineering</h1>
+                              {dept && <h2>{dept}</h2>}
+                              <h3>
+                                    {sem && `SEM ${sem}`} UG CALENDAR OF EVENTS
+                              </h3>
+                              <h4>
+                                    {startYear}-{endYear}
+                              </h4>
 
-                        {startDate && endDate ? (
-                              <div>
-                                    <div className="calendar-button-container">
-                                          <button
-                                                className="undo-btn"
-                                                onClick={handleUndoRemark}
-                                                disabled={remarks.length === 0}
-                                          >
-                                                Undo Last Remark
-                                          </button>
+                              {startDate && endDate ? (
+                                    <div>
+                                          <div className="calendar-button-container">
+                                                <button
+                                                      className="undo-btn"
+                                                      onClick={handleUndoRemark}
+                                                      disabled={
+                                                            remarks.length === 0
+                                                      }
+                                                >
+                                                      Undo Last Remark
+                                                </button>
 
-                                          <button
-                                                className="add-remark-btn"
-                                                onClick={() =>
-                                                      setShowModal(true)
-                                                }
-                                          >
-                                                Add Remark
-                                          </button>
-                                          <button
-                                                className="clear-btn"
-                                                onClick={clearData}
-                                          >
-                                                Clear Data
-                                          </button>
-                                          <button
-                                                className="save-btn"
-                                                onClick={handleExport}
-                                          >
-                                                Save
-                                          </button>
-                                    </div>
+                                                <button
+                                                      className="add-remark-btn"
+                                                      onClick={() =>
+                                                            setShowModal(true)
+                                                      }
+                                                >
+                                                      Add Remark
+                                                </button>
+                                                <button
+                                                      className="clear-btn"
+                                                      onClick={clearData}
+                                                >
+                                                      Clear Data
+                                                </button>
+                                                <button
+                                                      className="save-btn"
+                                                      onClick={handleExport}
+                                                >
+                                                      Save
+                                                </button>
+                                          </div>
 
-                                    <table className="calendar-table">
-                                          <thead>
-                                                <tr>
-                                                      <th>WEEK NO.</th>
-                                                      <th>MONTH</th>
-                                                      {weekdays.map((day) => (
-                                                            <th key={day}>
-                                                                  {day}
+                                          <table className="calendar-table">
+                                                <thead>
+                                                      <tr>
+                                                            <th>WEEK NO.</th>
+                                                            <th>MONTH</th>
+                                                            {weekdays.map(
+                                                                  (day) => (
+                                                                        <th
+                                                                              key={
+                                                                                    day
+                                                                              }
+                                                                        >
+                                                                              {
+                                                                                    day
+                                                                              }
+                                                                        </th>
+                                                                  )
+                                                            )}
+                                                            <th>
+                                                                  NO. OF WORKING
+                                                                  DAYS
                                                             </th>
-                                                      ))}
-                                                      <th>
-                                                            NO. OF WORKING DAYS
-                                                      </th>
-                                                      <th>REMARK</th>
-                                                </tr>
-                                          </thead>
-                                          <tbody>
-                                                {weeks.map(
-                                                      (week, weekIndex) => {
-                                                            const workingDays =
-                                                                  countWorkingDays(
-                                                                        week
-                                                                  );
-                                                            const firstWeekDay =
-                                                                  getDay(
-                                                                        week[0]
-                                                                  );
+                                                            <th>REMARK</th>
+                                                      </tr>
+                                                </thead>
+                                                <tbody>
+                                                      {weeks.map(
+                                                            (
+                                                                  week,
+                                                                  weekIndex
+                                                            ) => {
+                                                                  const workingDays =
+                                                                        countWorkingDays(
+                                                                              week
+                                                                        );
+                                                                  const firstWeekDay =
+                                                                        getDay(
+                                                                              week[0]
+                                                                        );
 
-                                                            return (
-                                                                  <tr
-                                                                        key={
-                                                                              weekIndex
-                                                                        }
-                                                                  >
-                                                                        <td>
-                                                                              {weekIndex +
-                                                                                    1}
-                                                                        </td>
-                                                                        <td>
-                                                                              {getWeekMonthDisplay(
-                                                                                    week
-                                                                              )}
-                                                                        </td>
-                                                                        {weekdays.map(
-                                                                              (
-                                                                                    _,
-                                                                                    i
-                                                                              ) => {
-                                                                                    if (
-                                                                                          weekIndex ===
-                                                                                                0 &&
-                                                                                          i <
-                                                                                                firstWeekDay -
-                                                                                                      1
-                                                                                    ) {
+                                                                  return (
+                                                                        <tr
+                                                                              key={
+                                                                                    weekIndex
+                                                                              }
+                                                                        >
+                                                                              <td>
+                                                                                    {weekIndex +
+                                                                                          1}
+                                                                              </td>
+                                                                              <td>
+                                                                                    {getWeekMonthDisplay(
+                                                                                          week
+                                                                                    )}
+                                                                              </td>
+                                                                              {weekdays.map(
+                                                                                    (
+                                                                                          _,
+                                                                                          i
+                                                                                    ) => {
+                                                                                          if (
+                                                                                                weekIndex ===
+                                                                                                      0 &&
+                                                                                                i <
+                                                                                                      firstWeekDay -
+                                                                                                            1
+                                                                                          ) {
+                                                                                                return (
+                                                                                                      <td
+                                                                                                            key={`${weekIndex}-${i}`}
+                                                                                                      ></td>
+                                                                                                );
+                                                                                          }
+
+                                                                                          const dayIndex =
+                                                                                                weekIndex ===
+                                                                                                0
+                                                                                                      ? i -
+                                                                                                        (firstWeekDay -
+                                                                                                              1)
+                                                                                                      : i;
+                                                                                          const dayDate =
+                                                                                                week[
+                                                                                                      dayIndex
+                                                                                                ];
+
+                                                                                          if (
+                                                                                                !dayDate
+                                                                                          )
+                                                                                                return (
+                                                                                                      <td
+                                                                                                            key={`${weekIndex}-${i}`}
+                                                                                                      ></td>
+                                                                                                );
+
                                                                                           return (
                                                                                                 <td
                                                                                                       key={`${weekIndex}-${i}`}
-                                                                                                ></td>
+                                                                                                      className={
+                                                                                                            isNonWorkingDay(
+                                                                                                                  dayDate
+                                                                                                            )
+                                                                                                                  ? "holiday"
+                                                                                                                  : shouldHighlight(
+                                                                                                                          dayDate
+                                                                                                                    )
+                                                                                                                  ? "event"
+                                                                                                                  : ""
+                                                                                                      }
+                                                                                                >
+                                                                                                      {dateFnsFormat(
+                                                                                                            dayDate,
+                                                                                                            "d"
+                                                                                                      )}
+                                                                                                      {(isNonWorkingDay(
+                                                                                                            dayDate
+                                                                                                      ) ||
+                                                                                                            shouldHighlight(
+                                                                                                                  dayDate
+                                                                                                            )) && (
+                                                                                                            <sup>
+                                                                                                                  *
+                                                                                                            </sup>
+                                                                                                      )}
+                                                                                                </td>
                                                                                           );
                                                                                     }
-
-                                                                                    const dayIndex =
-                                                                                          weekIndex ===
-                                                                                          0
-                                                                                                ? i -
-                                                                                                  (firstWeekDay -
-                                                                                                        1)
-                                                                                                : i;
-                                                                                    const dayDate =
-                                                                                          week[
-                                                                                                dayIndex
-                                                                                          ];
-
-                                                                                    if (
-                                                                                          !dayDate
-                                                                                    )
-                                                                                          return (
-                                                                                                <td
-                                                                                                      key={`${weekIndex}-${i}`}
-                                                                                                ></td>
-                                                                                          );
-
-                                                                                    return (
-                                                                                          <td
-                                                                                                key={`${weekIndex}-${i}`}
-                                                                                                className={
-                                                                                                      isNonWorkingDay(
-                                                                                                            dayDate
-                                                                                                      )
-                                                                                                            ? "holiday"
-                                                                                                            : shouldHighlight(
-                                                                                                                    dayDate
-                                                                                                              )
-                                                                                                            ? "event"
-                                                                                                            : ""
-                                                                                                }
-                                                                                          >
-                                                                                                {dateFnsFormat(
-                                                                                                      dayDate,
-                                                                                                      "d"
-                                                                                                )}
-                                                                                                {(isNonWorkingDay(
-                                                                                                      dayDate
-                                                                                                ) ||
-                                                                                                      shouldHighlight(
-                                                                                                            dayDate
-                                                                                                      )) && (
-                                                                                                      <sup>
-                                                                                                            *
-                                                                                                      </sup>
-                                                                                                )}
-                                                                                          </td>
-                                                                                    );
-                                                                              }
-                                                                        )}
-                                                                        <td>
-                                                                              {
-                                                                                    workingDays
-                                                                              }
-                                                                        </td>
-                                                                        <td className="remarks-cell">
-                                                                              {getWeekRemarks(
-                                                                                    week
                                                                               )}
-                                                                        </td>
-                                                                  </tr>
-                                                            );
-                                                      }
-                                                )}
-                                          </tbody>
-                                          <tfoot>
-                                                <tr className="totals-row">
-                                                      <td colSpan="2">
-                                                            <strong>
-                                                                  Total Working
-                                                                  Days
-                                                            </strong>
-                                                      </td>
-                                                      {getWorkingDaysByWeekday().map(
-                                                            (count, idx) => (
-                                                                  <td key={idx}>
-                                                                        <strong>
-                                                                              {
-                                                                                    count
-                                                                              }
-                                                                        </strong>
-                                                                  </td>
-                                                            )
-                                                      )}
-                                                      <td>
-                                                            <strong>
-                                                                  {getWorkingDaysByWeekday().reduce(
-                                                                        (
-                                                                              sum,
-                                                                              val
-                                                                        ) =>
-                                                                              sum +
-                                                                              val,
-                                                                        0
-                                                                  )}
-                                                            </strong>
-                                                      </td>
-                                                      <td></td>
-                                                </tr>
-                                                <tr>
-                                                      <td
-                                                            colSpan={
-                                                                  weekdays.length +
-                                                                  4
+                                                                              <td>
+                                                                                    {
+                                                                                          workingDays
+                                                                                    }
+                                                                              </td>
+                                                                              <td className="remarks-cell">
+                                                                                    {getWeekRemarks(
+                                                                                          week
+                                                                                    )}
+                                                                              </td>
+                                                                        </tr>
+                                                                  );
                                                             }
-                                                            style={{
-                                                                  textAlign:
-                                                                        "left",
-                                                                  padding: "10px",
-                                                            }}
-                                                      >
-                                                            <div
+                                                      )}
+                                                </tbody>
+                                                <tfoot>
+                                                      <tr className="totals-row">
+                                                            <td colSpan="2">
+                                                                  <strong>
+                                                                        Total
+                                                                        Working
+                                                                        Days
+                                                                  </strong>
+                                                            </td>
+                                                            {getWorkingDaysByWeekday().map(
+                                                                  (
+                                                                        count,
+                                                                        idx
+                                                                  ) => (
+                                                                        <td
+                                                                              key={
+                                                                                    idx
+                                                                              }
+                                                                        >
+                                                                              <strong>
+                                                                                    {
+                                                                                          count
+                                                                                    }
+                                                                              </strong>
+                                                                        </td>
+                                                                  )
+                                                            )}
+                                                            <td>
+                                                                  <strong>
+                                                                        {getWorkingDaysByWeekday().reduce(
+                                                                              (
+                                                                                    sum,
+                                                                                    val
+                                                                              ) =>
+                                                                                    sum +
+                                                                                    val,
+                                                                              0
+                                                                        )}
+                                                                  </strong>
+                                                            </td>
+                                                            <td></td>
+                                                      </tr>
+                                                      <tr>
+                                                            <td
+                                                                  colSpan={
+                                                                        weekdays.length +
+                                                                        4
+                                                                  }
                                                                   style={{
-                                                                        display: "flex",
-                                                                        flexDirection:
-                                                                              "column",
-                                                                        gap: "8px",
+                                                                        textAlign:
+                                                                              "left",
+                                                                        padding: "10px",
                                                                   }}
                                                             >
-                                                                  <div>
-                                                                        <strong>
-                                                                              Note:
-                                                                        </strong>
-                                                                        <ul
-                                                                              style={{
-                                                                                    margin: "5px 0 0 20px",
-                                                                                    padding: 0,
-                                                                              }}
-                                                                        >
-                                                                              <li>
-                                                                                    Dates
-                                                                                    marked
-                                                                                    with
-                                                                                    *
-                                                                                    indicate
-                                                                                    holidays
-                                                                                    or
-                                                                                    events
-                                                                              </li>
-                                                                              <li>
-                                                                                    Holidays
-                                                                                    are
-                                                                                    highlighted
-                                                                                    in
-                                                                                    red
-                                                                              </li>
-                                                                              <li>
-                                                                                    Events
-                                                                                    are
-                                                                                    highlighted
-                                                                                    in
-                                                                                    blue
-                                                                              </li>
-                                                                              <li>
-                                                                                    <strong>
-                                                                                          {
-                                                                                                examStartDate
-                                                                                          }
-                                                                                    </strong>{" "}
-                                                                                    Onwards
-                                                                                    –
-                                                                                    Semester
-                                                                                    End
-                                                                                    Examination
-                                                                                    (Tentative)
-                                                                              </li>
-                                                                        </ul>
-                                                                  </div>
                                                                   <div
                                                                         style={{
-                                                                              fontStyle:
-                                                                                    "italic",
-                                                                              marginTop:
-                                                                                    "10px",
+                                                                              display: "flex",
+                                                                              flexDirection:
+                                                                                    "column",
+                                                                              gap: "8px",
                                                                         }}
                                                                   >
-                                                                        This
-                                                                        calendar
-                                                                        is
-                                                                        generated
-                                                                        for
-                                                                        academic
-                                                                        purposes
-                                                                        only.
-                                                                  </div>
-                                                                  <div
-                                                                        style={{
-                                                                              marginTop:
-                                                                                    "15px",
-                                                                              fontSize: "0.9em",
-                                                                        }}
-                                                                  >
-                                                                        <strong>
-                                                                              Legend:
-                                                                        </strong>
+                                                                        <div>
+                                                                              <strong>
+                                                                                    Note:
+                                                                              </strong>
+                                                                              <ul
+                                                                                    style={{
+                                                                                          margin: "5px 0 0 20px",
+                                                                                          padding: 0,
+                                                                                    }}
+                                                                              >
+                                                                                    <li>
+                                                                                          Dates
+                                                                                          marked
+                                                                                          with
+                                                                                          *
+                                                                                          indicate
+                                                                                          holidays
+                                                                                          or
+                                                                                          events
+                                                                                    </li>
+                                                                                    <li>
+                                                                                          Holidays
+                                                                                          are
+                                                                                          highlighted
+                                                                                          in
+                                                                                          red
+                                                                                    </li>
+                                                                                    <li>
+                                                                                          Events
+                                                                                          are
+                                                                                          highlighted
+                                                                                          in
+                                                                                          blue
+                                                                                    </li>
+                                                                                    <li>
+                                                                                          <strong>
+                                                                                                {
+                                                                                                      examStartDate
+                                                                                                }
+                                                                                          </strong>{" "}
+                                                                                          Onwards
+                                                                                          –
+                                                                                          Semester
+                                                                                          End
+                                                                                          Examination
+                                                                                          (Tentative)
+                                                                                    </li>
+                                                                              </ul>
+                                                                        </div>
                                                                         <div
                                                                               style={{
-                                                                                    display: "flex",
-                                                                                    gap: "15px",
+                                                                                    fontStyle:
+                                                                                          "italic",
                                                                                     marginTop:
-                                                                                          "5px",
+                                                                                          "10px",
                                                                               }}
                                                                         >
-                                                                              <span
+                                                                              This
+                                                                              calendar
+                                                                              is
+                                                                              generated
+                                                                              for
+                                                                              academic
+                                                                              purposes
+                                                                              only.
+                                                                        </div>
+                                                                        <div
+                                                                              style={{
+                                                                                    marginTop:
+                                                                                          "15px",
+                                                                                    fontSize: "0.9em",
+                                                                              }}
+                                                                        >
+                                                                              <strong>
+                                                                                    Legend:
+                                                                              </strong>
+                                                                              <div
                                                                                     style={{
-                                                                                          color: "#ff0000",
+                                                                                          display: "flex",
+                                                                                          gap: "15px",
+                                                                                          marginTop:
+                                                                                                "5px",
                                                                                     }}
                                                                               >
-                                                                                    ■
-                                                                                    Holiday
-                                                                              </span>
-                                                                              <span
-                                                                                    style={{
-                                                                                          color: "#2980b9",
-                                                                                    }}
-                                                                              >
-                                                                                    ■
-                                                                                    Event
-                                                                              </span>
+                                                                                    <span
+                                                                                          style={{
+                                                                                                color: "#ff0000",
+                                                                                          }}
+                                                                                    >
+                                                                                          ■
+                                                                                          Holiday
+                                                                                    </span>
+                                                                                    <span
+                                                                                          style={{
+                                                                                                color: "#2980b9",
+                                                                                          }}
+                                                                                    >
+                                                                                          ■
+                                                                                          Event
+                                                                                    </span>
+                                                                              </div>
                                                                         </div>
                                                                   </div>
-                                                            </div>
-                                                      </td>
-                                                </tr>
-                                                <tr>
-                                                      <td
-                                                            colSpan={
-                                                                  weekdays.length +
-                                                                  4
-                                                            }
-                                                            style={{
-                                                                  textAlign:
-                                                                        "left",
-                                                                  padding: "10px",
-                                                            }}
-                                                      >
-                                                            <div
+                                                            </td>
+                                                      </tr>
+                                                      <tr>
+                                                            <td
+                                                                  colSpan={
+                                                                        weekdays.length +
+                                                                        4
+                                                                  }
                                                                   style={{
-                                                                        marginTop:
-                                                                              "40px",
-                                                                        display: "flex",
-                                                                        justifyContent:
-                                                                              "space-between",
-                                                                        padding: "0 50px",
+                                                                        textAlign:
+                                                                              "left",
+                                                                        padding: "10px",
                                                                   }}
                                                             >
                                                                   <div
                                                                         style={{
-                                                                              textAlign:
-                                                                                    "center",
+                                                                              marginTop:
+                                                                                    "40px",
+                                                                              display: "flex",
+                                                                              justifyContent:
+                                                                                    "space-between",
+                                                                              padding: "0 50px",
                                                                         }}
                                                                   >
-                                                                        <p>
-                                                                              __________________________
-                                                                        </p>
-                                                                        <p>
-                                                                              <strong>
-                                                                                    Dean
-                                                                                    Academics
-                                                                                    /
-                                                                                    COE
-                                                                              </strong>
-                                                                        </p>
+                                                                        <div
+                                                                              style={{
+                                                                                    textAlign:
+                                                                                          "center",
+                                                                              }}
+                                                                        >
+                                                                              <p>
+                                                                                    __________________________
+                                                                              </p>
+                                                                              <p>
+                                                                                    <strong>
+                                                                                          Dean
+                                                                                          Academics
+                                                                                          /
+                                                                                          COE
+                                                                                    </strong>
+                                                                              </p>
+                                                                        </div>
+                                                                        <div
+                                                                              style={{
+                                                                                    textAlign:
+                                                                                          "center",
+                                                                              }}
+                                                                        >
+                                                                              <p>
+                                                                                    __________________________
+                                                                              </p>
+                                                                              <p>
+                                                                                    <strong>
+                                                                                          Principal
+                                                                                    </strong>
+                                                                              </p>
+                                                                        </div>
                                                                   </div>
-                                                                  <div
-                                                                        style={{
-                                                                              textAlign:
-                                                                                    "center",
-                                                                        }}
-                                                                  >
-                                                                        <p>
-                                                                              __________________________
-                                                                        </p>
-                                                                        <p>
-                                                                              <strong>
-                                                                                    Principal
-                                                                              </strong>
-                                                                        </p>
-                                                                  </div>
-                                                            </div>
-                                                      </td>
-                                                </tr>
-                                          </tfoot>
-                                    </table>
-                              </div>
-                        ) : (
-                              <div className="no-data-container">
-                                    <h1>NO DATA YET!</h1>
-                                    {!showSetupModal && (
-                                          <button
-                                                className="generate-calender"
-                                                onClick={() =>
-                                                      setShowSetupModal(true)
-                                                }
-                                          >
-                                                Generate Calendar
-                                          </button>
-                                    )}
-                              </div>
+                                                            </td>
+                                                      </tr>
+                                                </tfoot>
+                                          </table>
+                                    </div>
+                              ) : (
+                                    <div className="no-data-container">
+                                          <h1>NO DATA YET!</h1>
+                                          {!showSetupModal && (
+                                                <button
+                                                      className="generate-calender"
+                                                      onClick={() =>
+                                                            setShowSetupModal(
+                                                                  true
+                                                            )
+                                                      }
+                                                >
+                                                      Generate Calendar
+                                                </button>
+                                          )}
+                                    </div>
+                              )}
+                        </div>
+
+                        {showModal && (
+                              <RemarkModal
+                                    onClose={() => setShowModal(false)}
+                                    onSave={handleAddRemark}
+                              />
                         )}
-                  </div>
 
-                  {showModal && (
-                        <RemarkModal
-                              onClose={() => setShowModal(false)}
-                              onSave={handleAddRemark}
+                        <SetupModal
+                              isOpen={showSetupModal}
+                              onClose={() => setShowSetupModal(false)}
+                              setEndDate={setEndDate}
+                              setStartDate={setStartDate}
+                              setSem={setSem}
+                              setStartYear={setStartYear}
+                              setEndYear={setEndYear}
+                              setDept={setDept}
                         />
-                  )}
+                  </div>
+                  <div className="calendar-footer">
+                        <div className="footer-row">
+                              <div className="footer-section">
+                                    <p>
+                                          <strong>Developed By:</strong>
+                                    </p>
+                                    <p>
+                                          Shreenivas Nayakawadi (1DS22IS143)
+                                          <br />
+                                          Shreesha Alevoor (1DS22IS144)
+                                          <br />
+                                          Siddeshwar M (1DS22IS155)
+                                          <br />
+                                          Prashant S N (1DS23IS415)
+                                    </p>
+                              </div>
+                              <div className="footer-section right">
+                                    <p>
+                                          <strong>Guided By:</strong>
+                                    </p>
+                                    <p>
+                                          Mr. Yogesh B S
+                                          <br />
+                                          Assistant Professor
+                                          <br />
+                                          Department of, <br /> Information
+                                          Science and Engineering,
+                                          <br /> DSCE
+                                    </p>
+                              </div>
+                        </div>
 
-                  <SetupModal
-                        isOpen={showSetupModal}
-                        onClose={() => setShowSetupModal(false)}
-                        setEndDate={setEndDate}
-                        setStartDate={setStartDate}
-                        setSem={setSem}
-                        setStartYear={setStartYear}
-                        setEndYear={setEndYear}
-                        setDept={setDept}
-                  />
-            </div>
+                        <div className="footer-course">
+                              <p>
+                                    <strong>Course Name:</strong>
+                              </p>
+                              <p>
+                                    Full Stack Development
+                                    <br /> (B.E. 6th Semester, Information
+                                    Science and Engineering, DSCE)
+                                    <br />
+                                    2024–2025 (IPCC21IS62)
+                              </p>
+                        </div>
+                  </div>
+            </>
       );
 };
 

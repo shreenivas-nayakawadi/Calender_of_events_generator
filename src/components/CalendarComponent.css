@@ -252,6 +252,35 @@ td.holiday {
       box-shadow: none;
       transform: none;
     }
+
+    .calendar-footer {
+      margin-top: 30px;
+      padding: 0 40px;
+      font-size: 0.9em;
+      color: #555;
+    }
+    
+    .footer-row {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    
+    .footer-section {
+      flex: 1;
+      min-width: 250px;
+    }
+    
+    .footer-section.right {
+      text-align: right;
+    }
+    
+    .footer-course {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
     
 
 @media (max-width: 768px) {
