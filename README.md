@@ -4,6 +4,8 @@
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 
+Live at: https://shreenivas-nayakawadi.github.io/Calender_of_events_generator/
+
 A web-based application for generating academic calendars with event and holiday management capabilities.
 
 ## Features
