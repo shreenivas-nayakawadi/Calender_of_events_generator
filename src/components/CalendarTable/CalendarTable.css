@@ -1,0 +1,120 @@
+.calendar-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 10px;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    font-size: 14px;
+}
+
+.calendar-table th {
+    background-color: #3498db;
+    color: white;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.calendar-table td {
+    border: 1px solid #e0e0e0;
+    padding: 8px;
+    text-align: center;
+    vertical-align: middle;
+    height: 60px; /* Consistent row height */
+}
+
+.calendar-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.calendar-table tbody tr:hover {
+    background-color: #f1f8ff;
+}
+
+.calendar-table td.empty-cell {
+    background-color: #f5f5f5;
+    border: 1px solid #e0e0e0;
+}
+
+/* Day cell styling */
+td.holiday {
+    background-color: #ffdddd;
+    color: #b20000;
+    font-weight: bold;
+}
+td.holiday sup {
+    color: #b20000;
+}
+td.event {
+    background-color: #d0e7ff;
+    color: #000;
+    font-weight: bold;
+}
+td.event sup {
+    color: #1a73e8;
+}
+
+/* Remarks column styling */
+.remarks-cell {
+    vertical-align: top;
+    text-align: left;
+    padding: 8px 12px !important;
+    width: 25%; /* Allocate more space for remarks */
+}
+
+.remarks-column {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.remark-item {
+    padding: 4px 6px;
+    font-size: 0.85em;
+    line-height: 1.4;
+    border-radius: 3px;
+}
+
+.remark-item.holiday {
+    color: #e74c3c;
+    font-weight: bold;
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+.remark-item.event {
+    color: #2980b9;
+    font-weight: bold;
+    background-color: rgba(41, 128, 185, 0.1);
+}
+
+/* Footer styling */
+.calendar-table tfoot td {
+    text-align: left;
+    padding: 15px;
+    background-color: #f8f9fa;
+}
+
+.calendar-table tfoot .totals-row td {
+    text-align: center;
+    font-weight: bold;
+}
+
+.notes-content ul {
+    margin: 5px 0 0 20px;
+    padding: 0;
+    list-style-type: disc;
+}
+
+.signature-container {
+    margin-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 50px;
+}
+
+.signature-block {
+    text-align: center;
+}

@@ -1,0 +1,39 @@
+.calendar-footer {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px 40px;
+    font-size: 0.9em;
+    color: #555;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.footer-row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 250px;
+}
+
+.footer-section.right {
+    text-align: right;
+}
+
+.footer-course {
+    margin-top: 20px;
+    text-align: center;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .footer-section.right {
+        text-align: left;
+    }
+}

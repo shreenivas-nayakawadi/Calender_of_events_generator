@@ -1,0 +1,35 @@
+.calendar-header h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 5px;
+    font-size: 40px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.calendar-header h2 {
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 30px;
+    font-weight: 600; /* Use 600 for semibold */
+}
+
+.calendar-header h3 {
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: normal;
+}
+
+.calendar-header h4 {
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: normal;
+}
