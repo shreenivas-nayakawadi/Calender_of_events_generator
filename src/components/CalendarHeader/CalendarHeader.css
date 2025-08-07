@@ -1,35 +1,62 @@
-.calendar-header h1 {
-    color: #2c3e50;
+.calendar-header {
     text-align: center;
-    margin-bottom: 5px;
-    font-size: 40px;
-    font-weight: bold;
+    margin-bottom: 32px;
+    padding: 24px 0;
+}
+
+.calendar-header h1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+    font-size: clamp(24px, 5vw, 48px);
+    font-weight: 800;
     text-transform: uppercase;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
 }
 
 .calendar-header h2 {
-    color: #7f8c8d;
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 30px;
-    font-weight: 600; /* Use 600 for semibold */
+    color: #4a5568;
+    margin: 8px 0 16px 0;
+    font-size: clamp(18px, 3.5vw, 32px);
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .calendar-header h3 {
-    color: #7f8c8d;
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 24px;
-    font-weight: normal;
+    color: #718096;
+    margin: 8px 0 16px 0;
+    font-size: clamp(16px, 3vw, 26px);
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 
 .calendar-header h4 {
-    color: #7f8c8d;
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-size: 18px;
-    font-weight: normal;
+    color: #a0aec0;
+    margin: 8px 0 16px 0;
+    font-size: clamp(14px, 2.5vw, 20px);
+    font-weight: 400;
+    letter-spacing: 0.2px;
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+    .calendar-header {
+        margin-bottom: 24px;
+        padding: 16px 0;
+    }
+    
+    .calendar-header h1 {
+        line-height: 1.2;
+    }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .calendar-header {
+        margin-bottom: 28px;
+        padding: 20px 0;
+    }
 }

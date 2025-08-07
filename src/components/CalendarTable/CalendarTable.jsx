@@ -33,7 +33,8 @@ const CalendarTable = ({
     };
 
     return (
-        <table className="calendar-table">
+        <div className="calendar-table-container">
+            <table className="calendar-table">
             <thead>
                 <tr>
                     <th>WEEK NO.</th>
@@ -106,7 +107,8 @@ const CalendarTable = ({
                     </td>
                 </tr>
             </tfoot>
-        </table>
+            </table>
+        </div>
     );
 };
 

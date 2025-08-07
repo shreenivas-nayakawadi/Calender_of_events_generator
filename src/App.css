@@ -1,15 +1,53 @@
 .calendar-container {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    max-width: 1200px;
+    font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 1400px;
     margin: 20px auto;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
 }
 
+.calendar-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    z-index: 1;
+}
+
+.calendar-container > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* Mobile Styles */
 @media (max-width: 768px) {
     .calendar-container {
-        padding: 10px;
+        margin: 10px;
+        padding: 16px;
+        border-radius: 16px;
+    }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .calendar-container {
+        margin: 15px;
+        padding: 20px;
+    }
+}
+
+/* Large Desktop */
+@media (min-width: 1400px) {
+    .calendar-container {
+        padding: 32px;
     }
 }
